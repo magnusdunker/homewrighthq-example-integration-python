@@ -1,0 +1,17 @@
+[project]
+name = "thehome-example-counter-python"
+version = "0.1.0"
+description = "Eksempel på en ekstern integration til TheHome i Python: en tæller"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+build = ["pyinstaller>=6.10"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["thehome_plugin", "example_counter_python"]
