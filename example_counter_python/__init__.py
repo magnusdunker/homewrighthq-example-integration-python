@@ -79,14 +79,20 @@ async def register_set_service(host: Host, entry_id: str) -> None:
     )
 
 
+#: Hvor tit tællerens stand skrives i TheHomes log (sekunder).
+LOG_EVERY = 10
+
+
 @dataclass
 class Counter:
+    name: str
     count: int
     running: bool
     count_id: Optional[str]
     running_id: Optional[str]
     reset_id: Optional[str]
     task: Optional[asyncio.Task] = None
+    log_task: Optional[asyncio.Task] = None
 
 
 class Example(Integration):
@@ -158,6 +164,14 @@ class Example(Integration):
                 except PluginError as e:
                     log("WARN", f"kunne ikke opdatere {c.count_id}: {e}")
 
+    async def log_state(self, entry_id: str) -> None:
+        while True:
+            await asyncio.sleep(LOG_EVERY)
+            c = self.counters.get(entry_id)
+            if c is None:
+                return
+            log("INFO", f"{c.name}: tælleren står på {c.count} ({'kører' if c.running else 'pause'})")
+
     # -- forløb ------------------------------------------------------------
 
     async def config_flow(self, host: Host, flow: Flow, step: str, user_input: Optional[dict]) -> FlowReply:
@@ -214,18 +228,21 @@ class Example(Integration):
         await register_set_service(host, entry_id)
 
         count = self.load(host, entry_id)
-        counter = Counter(count=count, running=True, count_id=count_id, running_id=running_id, reset_id=reset_id)
+        counter = Counter(name=name, count=count, running=True, count_id=count_id, running_id=running_id, reset_id=reset_id)
         self.counters[entry_id] = counter
         if reset_id:
             await host.set_state(reset_id, "unknown")
         await self.publish(host, entry_id)
         counter.task = asyncio.create_task(self.tick(host, entry_id, interval))
+        counter.log_task = asyncio.create_task(self.log_state(entry_id))
         log("INFO", f"{name} tæller hvert {interval}. sekund fra {count}")
 
     async def unload_entry(self, host: Host, entry_id: str) -> None:
         c = self.counters.pop(entry_id, None)
-        if c and c.task:
-            c.task.cancel()
+        if c:
+            for task in (c.task, c.log_task):
+                if task:
+                    task.cancel()
         # TheHome fjerner tjenesten med opsætningen; de andre skal stadig have den
         other = next(iter(self.counters), None)
         if other:
