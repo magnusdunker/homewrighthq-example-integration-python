@@ -1,4 +1,4 @@
-"""Tests af SDK'en: testen spiller TheHome over et rør."""
+"""Tests af SDK'en: testen spiller HomewrightHQ over et rør."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ class LineSink:
 
 
 class Harness:
-    """Kører ``serve`` i en tråd og lader testen være TheHome."""
+    """Kører ``serve`` i en tråd og lader testen være HomewrightHQ."""
 
     def __init__(self, integration: Integration) -> None:
         r, w = os.pipe()
@@ -75,7 +75,7 @@ class ProtocolTest(unittest.TestCase):
                 h.send({"id": 1, "method": "initialize", "params": {"api_version": 1, "data_dir": d}})
                 self.assertEqual(h.recv(), {"jsonrpc": "2.0", "id": 1, "result": {"api_version": 1}})
 
-            # setup_entry kalder tilbage til TheHome, før den svarer
+            # setup_entry kalder tilbage til HomewrightHQ, før den svarer
             h.send({"id": 2, "method": "setup_entry", "params": {"entry": {"entry_id": "e1", "data": {}}}})
             add = h.recv()
             self.assertEqual(add["method"], "entity/add")

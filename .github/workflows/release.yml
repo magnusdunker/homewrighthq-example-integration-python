@@ -2,7 +2,7 @@
 # pushes, og lægger dem sammen med thehome.json på en GitHub-release.
 # PyInstaller kan ikke krydskompilere, så hver platform bygges på sin egen
 # runner. Linux bygges på Ubuntu 22.04 (glibc 2.35), så binæren også kører i
-# TheHomes Docker-image (Debian bookworm, glibc 2.36).
+# HomewrightHQ's Docker-image (Debian bookworm, glibc 2.36).
 name: Release
 
 on:

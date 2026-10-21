@@ -1,4 +1,4 @@
-"""Eksempel-tæller: en ekstern integration til TheHome, skrevet i Python.
+"""Eksempel-tæller: en ekstern integration til HomewrightHQ, skrevet i Python.
 
 Hver opsætning får en enhed med
 
@@ -64,7 +64,7 @@ def interval_of(entry: Entry) -> int:
 
 async def register_set_service(host: Host, entry_id: str) -> None:
     """``example_counter_python.set`` gælder alle opsætninger; målet afgør
-    hvilken. TheHome knytter tjenesten til den opsætning, der registrerede den."""
+    hvilken. HomewrightHQ knytter tjenesten til den opsætning, der registrerede den."""
     await host.register_service(
         entry_id,
         "set",
@@ -79,7 +79,7 @@ async def register_set_service(host: Host, entry_id: str) -> None:
     )
 
 
-#: Hvor tit tællerens stand skrives i TheHomes log (sekunder).
+#: Hvor tit tællerens stand skrives i HomewrightHQ's log (sekunder).
 LOG_EVERY = 10
 
 
@@ -123,7 +123,7 @@ class Example(Integration):
     # -- tilstande ---------------------------------------------------------
 
     async def publish(self, host: Host, entry_id: str) -> None:
-        """Send tællerens og kontaktens tilstand til TheHome."""
+        """Send tællerens og kontaktens tilstand til HomewrightHQ."""
         c = self.counters.get(entry_id)
         if c is None:
             return
@@ -210,7 +210,7 @@ class Example(Integration):
             Device(
                 name=name,
                 identifiers=[(DOMAIN, entry_id)],
-                manufacturer="TheHome",
+                manufacturer="HomewrightHQ",
                 model="Eksempel-tæller (Python)",
                 sw_version=__version__,
             ),
@@ -243,7 +243,7 @@ class Example(Integration):
             for task in (c.task, c.log_task):
                 if task:
                     task.cancel()
-        # TheHome fjerner tjenesten med opsætningen; de andre skal stadig have den
+        # HomewrightHQ fjerner tjenesten med opsætningen; de andre skal stadig have den
         other = next(iter(self.counters), None)
         if other:
             await register_set_service(host, other)

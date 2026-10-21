@@ -1,6 +1,6 @@
-"""SDK til eksterne TheHome-integrationer i Python.
+"""SDK til eksterne HomewrightHQ-integrationer i Python.
 
-En ekstern integration er et selvstændigt program. TheHome starter det og
+En ekstern integration er et selvstændigt program. HomewrightHQ starter det og
 taler med det over JSON-RPC 2.0 på stdin og stdout, én besked pr. linje.
 stderr er integrationens log. Programmet stopper, når stdin lukkes.
 
@@ -57,7 +57,7 @@ HOST_TIMEOUT = 30.0
 
 
 class PluginError(Exception):
-    """En fejl til TheHome. ``kind`` afgør, hvad TheHome gør.
+    """En fejl til HomewrightHQ. ``kind`` afgør, hvad HomewrightHQ gør.
 
     ``not_ready`` prøver igen senere, ``auth_failed`` beder brugeren logge ind
     igen, ``invalid_argument``, ``not_supported``, ``unavailable`` og
@@ -98,7 +98,7 @@ class PluginError(Exception):
 
 
 # ---------------------------------------------------------------------------
-# data fra TheHome
+# data fra HomewrightHQ
 
 
 @dataclass
@@ -195,7 +195,7 @@ class FlowReply:
         return self
 
     def with_unique_id(self, unique_id: str) -> "FlowReply":
-        """Sæt et unikt id. TheHome afbryder med ``already_configured``, hvis en
+        """Sæt et unikt id. HomewrightHQ afbryder med ``already_configured``, hvis en
         anden opsætning har det."""
         self.unique_id = unique_id
         return self
@@ -215,7 +215,7 @@ def _compact(d: dict) -> dict:
 
 @dataclass
 class Device:
-    """En enhed. Felterne svarer til TheHomes enhedsregister."""
+    """En enhed. Felterne svarer til HomewrightHQ's enhedsregister."""
 
     name: str
     #: F.eks. ``[("mit_domæne", "serienummer")]``. Holder enheden stabil.
@@ -235,7 +235,7 @@ class Device:
 
 @dataclass
 class Entity:
-    """En entity. Felterne svarer til TheHomes entity-register."""
+    """En entity. Felterne svarer til HomewrightHQ's entity-register."""
 
     #: ``sensor``, ``switch``, ``light``, ``button``, ``climate`` ...
     domain: str
@@ -277,7 +277,7 @@ class Integration:
         raise NotImplementedError
 
     async def unload_entry(self, host: "Host", entry_id: str) -> None:
-        """Stop arbejdet for en opsætning. TheHome fjerner selv dens tilstande."""
+        """Stop arbejdet for en opsætning. HomewrightHQ fjerner selv dens tilstande."""
 
     async def entity_service(self, host: "Host", entry_id: str, entity_id: str, service: str, data: dict) -> None:
         """Et tjenestekald på en entity tilføjet med ``handler=True``, f.eks. ``switch.turn_on``."""
@@ -296,11 +296,11 @@ class Integration:
 
 
 # ---------------------------------------------------------------------------
-# forbindelsen til TheHome
+# forbindelsen til HomewrightHQ
 
 
 class Host:
-    """Forbindelsen til TheHome."""
+    """Forbindelsen til HomewrightHQ."""
 
     def __init__(self, send, data_dir: Path):
         self._send = send
@@ -309,7 +309,7 @@ class Host:
         self.data_dir = data_dir
 
     async def request(self, method: str, params: Any = None) -> Any:
-        """Kald en metode i TheHome og vent på svaret."""
+        """Kald en metode i HomewrightHQ og vent på svaret."""
         msg_id = self._next_id
         self._next_id += 1
         fut = asyncio.get_running_loop().create_future()
@@ -318,7 +318,7 @@ class Host:
         try:
             return await asyncio.wait_for(fut, HOST_TIMEOUT)
         except asyncio.TimeoutError:
-            raise PluginError.failed(f"{method}: TheHome svarede ikke") from None
+            raise PluginError.failed(f"{method}: HomewrightHQ svarede ikke") from None
         finally:
             self._pending.pop(msg_id, None)
 
@@ -336,7 +336,7 @@ class Host:
     def _close(self) -> None:
         for fut in self._pending.values():
             if not fut.done():
-                fut.set_exception(PluginError.not_ready("forbindelsen til TheHome er lukket"))
+                fut.set_exception(PluginError.not_ready("forbindelsen til HomewrightHQ er lukket"))
 
     async def register_device(self, entry_id: str, device: Device) -> str:
         """Registrér en enhed. Returnerer dens id."""
@@ -346,7 +346,7 @@ class Host:
         return v["id"]
 
     async def add_entity(self, entry_id: str, entity: Entity, handler: bool = False) -> Optional[str]:
-        """Tilføj en entity. Med ``handler`` sender TheHome dens tjenestekald til
+        """Tilføj en entity. Med ``handler`` sender HomewrightHQ dens tjenestekald til
         :meth:`Integration.entity_service`. Returnerer entity_id, eller ``None``
         hvis brugeren har slået den fra."""
         v = await self.request("entity/add", {"entry_id": entry_id, "entity": entity.to_json(), "handler": handler})
@@ -368,7 +368,7 @@ class Host:
         await self.request("service/register", {"entry_id": entry_id, "service": service, "description": description})
 
     async def call_service(self, domain: str, service: str, data: Optional[dict] = None) -> Any:
-        """Kald en tjeneste i TheHome, f.eks. ``light.turn_on``."""
+        """Kald en tjeneste i HomewrightHQ, f.eks. ``light.turn_on``."""
         return await self.request("hub/call_service", {"domain": domain, "service": service, "data": data or {}})
 
     async def fire_event(self, event_type: str, data: Optional[dict] = None) -> None:
@@ -390,7 +390,7 @@ class Host:
 
 
 def log(level: str, message: str) -> None:
-    """Skriv til TheHomes log. ``level``: ``ERROR``, ``WARN``, ``INFO`` eller ``DEBUG``."""
+    """Skriv til HomewrightHQ's log. ``level``: ``ERROR``, ``WARN``, ``INFO`` eller ``DEBUG``."""
     print(f"{level} {message}", file=sys.stderr, flush=True)
 
 
@@ -409,7 +409,7 @@ def _utf8(stream: TextIO) -> TextIO:
 
 
 def run(integration: Integration) -> None:
-    """Kør integrationen, indtil TheHome lukker stdin eller beder om at stoppe."""
+    """Kør integrationen, indtil HomewrightHQ lukker stdin eller beder om at stoppe."""
     stdin = _utf8(sys.stdin)
     stdout = _utf8(sys.stdout)
     _utf8(sys.stderr)
@@ -467,7 +467,7 @@ async def serve(integration: Integration, stdin: TextIO, stdout: TextIO) -> None
         try:
             msg = json.loads(line)
         except json.JSONDecodeError:
-            log("WARN", f"ugyldig besked fra TheHome: {line}")
+            log("WARN", f"ugyldig besked fra HomewrightHQ: {line}")
             continue
         method = msg.get("method")
         if method is None:
@@ -495,7 +495,7 @@ async def _answer(integration: Integration, host: Host, send, msg: dict) -> None
         reply = {"jsonrpc": "2.0", "id": msg_id, "error": e.to_wire()}
     except asyncio.CancelledError:
         raise
-    except Exception as e:  # noqa: BLE001 - alle fejl skal tilbage til TheHome
+    except Exception as e:  # noqa: BLE001 - alle fejl skal tilbage til HomewrightHQ
         log("ERROR", f"{msg['method']}: {e!r}")
         reply = {"jsonrpc": "2.0", "id": msg_id, "error": PluginError.failed(str(e) or type(e).__name__).to_wire()}
     if msg_id is not None:
